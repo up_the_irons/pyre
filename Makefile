@@ -35,6 +35,10 @@ rules:
 setup:
 	python -m venv venv
 	. venv/bin/activate && pip install -r requirements.txt
+	@if [ ! -f company.yaml ]; then \
+		sed 's/Your Company, Inc./ACME, Inc./' company.yaml.sample > company.yaml; \
+		echo "Created company.yaml -- set the name to your company (appears in reports), or yourself (personal accounting)"; \
+	fi
 ifndef SKIP_COA
 	@$(MAKE) setup-coa
 endif
