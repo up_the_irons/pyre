@@ -1,0 +1,52 @@
+# Database
+pyre.db
+pyre_demo.db
+*-backup-*.db
+*.db.note
+*.lock
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Generated reports
+*.pdf
+
+TODO
+pyre.log
+
+# Imports
+*.qfx
+*.csv
+
+# Config
+quick_functions.yaml
+preferences.yaml
+company.yaml
+
+# Claude Code
+.claude/

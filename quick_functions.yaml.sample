@@ -1,0 +1,107 @@
+# Quick Functions -- keyboard-triggered transaction templates.
+#
+# Place this file as quick_functions.yaml in the same directory as your
+# database (next to pyre.db).  Each entry defines a template that can be
+# fired with a single keypress from the main ledger screen.
+#
+# Keys 0-9 are always active.  For letter keys (a-z), press Shift+F first
+# to enter Quick Function mode.
+#
+# The account IDs below match the starter Chart of Accounts created by
+# `make setup`.  Adjust them to match your own accounts.
+
+# -- Groceries (key: 1) ------------------------------------
+# Simple two-split: prompt for the amount, charge to credit card.
+- key: "1"
+  group: Food
+  label: Groceries
+  description: Groceries
+  splits:
+    - account: food__groceries
+      direction: debit
+      prompt: Amount
+    - account: credit_card
+      direction: credit
+      prompt: null
+
+# -- Dining Out (key: 2) -----------------------------------
+- key: "2"
+  group: Food
+  label: Dining Out
+  description: Dining Out
+  splits:
+    - account: food__dining
+      direction: debit
+      prompt: Amount
+    - account: credit_card
+      direction: credit
+      prompt: null
+
+# -- Gas (key: 3) ------------------------------------------
+- key: "3"
+  group: Transportation
+  label: Gas
+  description: Gas
+  splits:
+    - account: transportation__fuel
+      direction: debit
+      prompt: Amount
+    - account: credit_card
+      direction: credit
+      prompt: null
+
+# -- Rent / Mortgage (key: 4) ------------------------------
+# Paid from checking instead of a credit card.
+- key: "4"
+  group: Housing
+  label: Rent / Mortgage
+  description: Rent / Mortgage
+  splits:
+    - account: housing__rent
+      direction: debit
+      prompt: Amount
+    - account: checking
+      direction: credit
+      prompt: null
+
+# -- Utilities (key: 5) ------------------------------------
+- key: "5"
+  group: Housing
+  label: Utilities
+  description: Utilities
+  splits:
+    - account: housing__utilities
+      direction: debit
+      prompt: Amount
+    - account: checking
+      direction: credit
+      prompt: null
+
+# -- Entertainment (key: 6) --------------------------------
+# pick_account lets you choose which card/account to pay from at runtime.
+- key: "6"
+  group: Other
+  label: Entertainment
+  description: Entertainment
+  splits:
+    - account: entertainment
+      direction: debit
+      prompt: Amount
+    - account: credit_card
+      direction: credit
+      prompt: null
+      pick_account: true
+
+# -- Pay Credit Card (key: 7) ------------------------------
+# Transfer from checking to pay down the credit card balance.
+- key: "7"
+  group: Transfers
+  label: Pay Credit Card
+  description: Credit Card Payment
+  splits:
+    - account: credit_card
+      direction: debit
+      prompt: Amount
+    - account: checking
+      direction: credit
+      prompt: null
