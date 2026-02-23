@@ -129,22 +129,51 @@ def parse_gusto_gl(filepath):
     return [entry]
 
 
+def _resolve_split(split, account_map):
+    """Resolve a single split using the account map.
+
+    The map value can be:
+      - A string: all splits of this type map to that Pyre account ID.
+      - A dict: keys are substrings matched against the split description.
+                The first matching key wins.
+
+    Returns the Pyre account ID, or None if unmatched.
+    """
+    mapping = account_map.get(split.account_name)
+    if mapping is None:
+        return None
+
+    if isinstance(mapping, str):
+        return mapping
+
+    # Dict: match description substrings (case-insensitive)
+    desc_lower = split.description.lower()
+    for pattern, pyre_id in mapping.items():
+        if pattern.lower() in desc_lower:
+            return pyre_id
+
+    return None
+
+
 def resolve_gusto_accounts(entries, account_map):
     """Resolve Gusto account types to Pyre account IDs.
 
-    account_map: dict mapping Gusto Account Type strings to Pyre account IDs
-                 (from gusto.yaml).
+    account_map values can be a string (one account for the whole type) or
+    a dict mapping description substrings to different accounts.
 
-    Returns set of unmapped Gusto account type names.
+    Returns set of unmapped split labels (type or type:description).
     """
     unmatched = set()
 
     for entry in entries:
         for split in entry.splits:
-            pyre_id = account_map.get(split.account_name)
+            pyre_id = _resolve_split(split, account_map)
             if pyre_id:
                 split.account_id = pyre_id
             else:
-                unmatched.add(split.account_name)
+                label = split.account_name
+                if split.description:
+                    label = f"{label}: {split.description}"
+                unmatched.add(label)
 
     return unmatched

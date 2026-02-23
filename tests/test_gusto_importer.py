@@ -302,8 +302,7 @@ class TestLoadGustoConfig:
 # -- Account Resolution ------------------------------------------------------
 
 class TestResolveGustoAccounts:
-    def test_resolves_all_known_types(self):
-        entries = parse_gusto_gl(_write_gusto_xlsx(SAMPLE_GL_ROWS))
+    def test_resolves_all_known_types_with_string_map(self):
         path = _write_gusto_xlsx(SAMPLE_GL_ROWS)
         try:
             entries = parse_gusto_gl(path)
@@ -314,6 +313,58 @@ class TestResolveGustoAccounts:
         for sp in entries[0].splits:
             assert sp.account_id is not None
 
+    def test_dict_mapping_routes_by_description(self):
+        """Dict values map description substrings to different accounts."""
+        path = _write_gusto_xlsx(SAMPLE_GL_ROWS)
+        try:
+            entries = parse_gusto_gl(path)
+        finally:
+            os.unlink(path)
+        account_map = {
+            "RegularWages": "salaries",
+            "EmployerTax": {
+                "Social Security": "fica",
+                "Medicare": "fica",
+            },
+            "DebitNetPay": "checking",
+            "DebitTax": "checking",
+            "BenefitLiability": "liabilities",
+        }
+        unmatched = resolve_gusto_accounts(entries, account_map)
+        assert unmatched == set()
+
+        ss_split = next(
+            s for s in entries[0].splits
+            if "Social Security" in s.description
+        )
+        assert ss_split.account_id == "fica"
+
+        med_split = next(
+            s for s in entries[0].splits
+            if "Medicare" in s.description
+        )
+        assert med_split.account_id == "fica"
+
+    def test_dict_mapping_reports_unmatched_description(self):
+        """Dict map with missing description substring reports the split."""
+        path = _write_gusto_xlsx(SAMPLE_GL_ROWS)
+        try:
+            entries = parse_gusto_gl(path)
+        finally:
+            os.unlink(path)
+        account_map = {
+            "RegularWages": "salaries",
+            "EmployerTax": {
+                "Social Security": "fica",
+                # Medicare intentionally missing
+            },
+            "DebitNetPay": "checking",
+            "DebitTax": "checking",
+            "BenefitLiability": "liabilities",
+        }
+        unmatched = resolve_gusto_accounts(entries, account_map)
+        assert any("Medicare" in u for u in unmatched)
+
     def test_reports_unmapped_types(self):
         path = _write_gusto_xlsx(SAMPLE_GL_ROWS)
         try:
@@ -322,8 +373,8 @@ class TestResolveGustoAccounts:
             os.unlink(path)
         partial_map = {"RegularWages": "salaries"}  # missing others
         unmatched = resolve_gusto_accounts(entries, partial_map)
-        assert "EmployerTax" in unmatched
-        assert "DebitNetPay" in unmatched
+        assert any("EmployerTax" in u for u in unmatched)
+        assert any("DebitNetPay" in u for u in unmatched)
 
     def test_unmatched_splits_have_no_account_id(self):
         path = _write_gusto_xlsx(SAMPLE_GL_ROWS)
@@ -334,6 +385,25 @@ class TestResolveGustoAccounts:
         unmatched = resolve_gusto_accounts(entries, {})
         for sp in entries[0].splits:
             assert sp.account_id is None
+
+    def test_description_matching_is_case_insensitive(self):
+        path = _write_gusto_xlsx(SAMPLE_GL_ROWS)
+        try:
+            entries = parse_gusto_gl(path)
+        finally:
+            os.unlink(path)
+        account_map = {
+            "RegularWages": "salaries",
+            "EmployerTax": {
+                "social security": "fica",  # lowercase
+                "medicare": "fica",
+            },
+            "DebitNetPay": "checking",
+            "DebitTax": "checking",
+            "BenefitLiability": "liabilities",
+        }
+        unmatched = resolve_gusto_accounts(entries, account_map)
+        assert unmatched == set()
 
 
 # -- Hash / Dedup -------------------------------------------------------------

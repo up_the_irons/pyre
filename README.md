@@ -157,10 +157,20 @@ account_map:
   RegularWages: salaries_and_wages
   HolidayWages: salaries_and_wages
   BenefitCompanyContribution: employee_benefits
-  EmployerTax: payroll_taxes
   BenefitLiability: payroll_liabilities
   DebitNetPay: checking          # your payroll bank account
   DebitTax: checking             # same payroll bank account
+
+  # String value: all splits of this type go to one account
+  # EmployerTax: payroll_taxes
+
+  # Dict value: route by description substring for finer control
+  EmployerTax:
+    Social Security: payroll_taxes_fica
+    Medicare: payroll_taxes_fica
+    FUTA: payroll_taxes_futa
+    SUI: payroll_taxes_sui
+    ETT: payroll_taxes_ett
 ```
 
 2. In Gusto, go to **Reports > General ledger report**, select a pay period,

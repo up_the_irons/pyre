@@ -3,11 +3,23 @@
 # Maps Gusto "Account Type" values to your Pyre Chart of Accounts IDs.
 # Edit the values (right side) to match your own accounts.
 # Any unmapped account types will be flagged as errors during import.
+#
+# Values can be:
+#   - A single account ID (all splits of that type go to one account)
+#   - A dict of description substrings -> account IDs (for finer control)
 account_map:
   RegularWages: salaries_and_wages
   HolidayWages: salaries_and_wages
   BenefitCompanyContribution: employee_benefits
-  EmployerTax: payroll_taxes
   BenefitLiability: payroll_liabilities
   DebitNetPay: checking
   DebitTax: checking
+
+  # Example: map employer taxes to different accounts by description
+  # EmployerTax: payroll_taxes          # simple: all to one account
+  EmployerTax:                           # or map by description substring:
+    Social Security: payroll_taxes_fica
+    Medicare: payroll_taxes_fica
+    FUTA: payroll_taxes_futa
+    SUI: payroll_taxes_sui
+    ETT: payroll_taxes_ett
