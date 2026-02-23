@@ -7,10 +7,12 @@ import pytest
 from textual.widgets import DataTable, Label
 
 from pyre.importers.models import is_already_imported, log_import
-from pyre.importers.qb_journal_importer import (
+from pyre.importers.journal import (
     JournalEntry,
     JournalSplit,
-    _compute_journal_hash,
+    compute_journal_hash,
+)
+from pyre.importers.qb_journal_importer import (
     build_qb_account_map,
     detect_qb_journal,
     parse_qb_journals,
@@ -712,8 +714,8 @@ class TestJournalHash:
             JournalSplit("Sales:Hosting:VPS", -13500),
             JournalSplit("PayPal", 13500),
         ])
-        h1 = _compute_journal_hash(entry)
-        h2 = _compute_journal_hash(entry)
+        h1 = compute_journal_hash(entry)
+        h2 = compute_journal_hash(entry)
         assert h1 == h2
 
     def test_hash_order_independence(self):
@@ -726,7 +728,7 @@ class TestJournalHash:
             JournalSplit("B", -100),
             JournalSplit("A", 100),
         ])
-        assert _compute_journal_hash(e1) == _compute_journal_hash(e2)
+        assert compute_journal_hash(e1) == compute_journal_hash(e2)
 
     def test_hash_uniqueness(self):
         """Different entries produce different hashes."""
@@ -738,7 +740,7 @@ class TestJournalHash:
             JournalSplit("A", 100),
             JournalSplit("B", -100),
         ])
-        assert _compute_journal_hash(e1) != _compute_journal_hash(e2)
+        assert compute_journal_hash(e1) != compute_journal_hash(e2)
 
     def test_hash_differs_by_amount(self):
         """Different amounts produce different hashes."""
@@ -750,7 +752,7 @@ class TestJournalHash:
             JournalSplit("A", 200),
             JournalSplit("B", -200),
         ])
-        assert _compute_journal_hash(e1) != _compute_journal_hash(e2)
+        assert compute_journal_hash(e1) != compute_journal_hash(e2)
 
     def test_parse_populates_hash(self):
         """parse_qb_journals should set hash on each entry."""

@@ -43,7 +43,7 @@
 
 - Full double-entry ledger with split transactions
 - Hierarchical Chart of Accounts (16 account types across 5 families)
-- OFX/QFX and CSV bank import with automatic payee matching
+- OFX/QFX, CSV, and Gusto payroll import with automatic payee matching
 - Account reconciliation
 - Scheduled/recurring transactions
 - Balance Sheet, Profit & Loss, Trial Balance, Cash Flow, and Vendor reports (PDF export)
@@ -89,6 +89,7 @@ cp quick_functions.yaml.sample quick_functions.yaml
 - `.env` -- set `PYRE_DB_PATH` to control where the database lives (default: `./pyre.db`)
 - `company.yaml` -- company/entity name shown in reports and the title bar
 - `quick_functions.yaml` -- keyboard-triggered transaction templates (see below)
+- `gusto.yaml` -- Gusto payroll account mapping, copied from `gusto.yaml.sample` (see below)
 - `preferences.yaml` -- UI theme and report output paths (see below)
 
 ## Report Output Paths
@@ -134,6 +135,42 @@ target path, Pyre will prompt before overwriting.
 
 If `report_output` is not configured, reports fall back to the current directory
 with default filenames.
+
+## Gusto Payroll Import
+
+Pyre can import payroll data from [Gusto](https://gusto.com) using their
+General Ledger report. Each report covers one pay period and produces a
+balanced journal entry with full line-item detail (wages, taxes, benefits,
+net pay, etc.).
+
+**Setup:**
+
+1. Copy the sample config and edit the account mappings to match your Chart of
+   Accounts:
+
+```
+cp gusto.yaml.sample gusto.yaml
+```
+
+```yaml
+account_map:
+  RegularWages: salaries_and_wages
+  HolidayWages: salaries_and_wages
+  BenefitCompanyContribution: employee_benefits
+  EmployerTax: payroll_taxes
+  BenefitLiability: payroll_liabilities
+  DebitNetPay: checking          # your payroll bank account
+  DebitTax: checking             # same payroll bank account
+```
+
+2. In Gusto, go to **Reports > General ledger report**, select a pay period,
+   and download the XLSX file.
+
+3. Import the file into Pyre (either from the TUI import screen or via
+   `make import FILE=path/to/general_ledger.xlsx`).
+
+Any Gusto account types not present in `gusto.yaml` will be flagged as errors
+during import. Just add the missing type to your config and re-import.
 
 ## Usage
 

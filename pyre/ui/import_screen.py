@@ -112,7 +112,7 @@ class ImportFileScreen(ModalScreen):
     def compose(self):
         with Vertical(id="if-dialog"):
             yield Label("Import Bank Transactions", id="if-title")
-            yield Label("Enter path to OFX/QFX or CSV file:", classes="if-field-label")
+            yield Label("Enter path to OFX/QFX, CSV, or XLSX file:", classes="if-field-label")
             yield Input(placeholder="/path/to/download.ofx", id="if-path", classes="if-input")
             yield Label("", id="if-error")
             with Horizontal(id="if-buttons"):
@@ -161,6 +161,8 @@ class ImportFileScreen(ModalScreen):
                 self._import_ofx(path)
             elif suffix == ".csv":
                 self._import_csv(path)
+            elif suffix == ".xlsx":
+                self._import_xlsx(path)
             else:
                 error_label.update(f"Unsupported file type: {suffix}")
         except Exception as e:
@@ -281,6 +283,44 @@ class ImportFileScreen(ModalScreen):
             callback=on_review,
         )
 
+    def _import_xlsx(self, path):
+        from pyre.importers.gusto_importer import (
+            detect_gusto_gl,
+            load_gusto_config,
+            parse_gusto_gl,
+            resolve_gusto_accounts,
+        )
+
+        if not detect_gusto_gl(path):
+            self.query_one("#if-error", Label).update(
+                "Unrecognized XLSX format (expected Gusto General Ledger)."
+            )
+            return
+
+        try:
+            config = load_gusto_config()
+        except FileNotFoundError as e:
+            self.query_one("#if-error", Label).update(str(e))
+            return
+
+        entries = parse_gusto_gl(path)
+        if not entries:
+            self.query_one("#if-error", Label).update("No payroll entries found in file.")
+            return
+
+        unmatched = resolve_gusto_accounts(entries, config["account_map"])
+
+        def on_review(result):
+            self.dismiss(result)
+
+        self.app.push_screen(
+            JournalReviewScreen(
+                self.con, str(path), entries, unmatched,
+                title=f"Import Gusto Payroll: {path.name}",
+            ),
+            callback=on_review,
+        )
+
     def _launch_review(self, path, transactions, bank_account_id, account_info):
         matches = match_transactions(self.con, transactions, bank_account_id)
 
@@ -310,12 +350,13 @@ class JournalReviewScreen(ModalScreen):
 
     DEFAULT_CSS = JOURNAL_REVIEW_CSS
 
-    def __init__(self, con, source_file, entries, unmatched):
+    def __init__(self, con, source_file, entries, unmatched, title=None):
         super().__init__()
         self.con = con
         self.source_file = source_file
         self.entries = entries
         self.unmatched = unmatched
+        self.title_text = title or f"Import QB Journals: {Path(source_file).name}"
         self.row_states = {}  # idx -> "OK" | "SKP"
         self._peek_toast = None
         # Pre-skip already-imported entries
@@ -325,7 +366,7 @@ class JournalReviewScreen(ModalScreen):
 
     def compose(self):
         with Vertical(id="jr-container"):
-            yield Label(f"Import QB Journals: {Path(self.source_file).name}", id="jr-title")
+            yield Label(self.title_text, id="jr-title")
             yield Label("", id="jr-status")
             yield DataTable(id="jr-table")
             yield Label(
@@ -481,7 +522,8 @@ class JournalReviewScreen(ModalScreen):
             name = sp.account_name
             if sp.account_id is None:
                 name = f"{name} [UNMATCHED]"
-            lines.append(f"  {name}: {fmt(sp.amount_cents)}")
+            desc = f" ({sp.description})" if sp.description else ""
+            lines.append(f"  {name}{desc}: {fmt(sp.amount_cents)}")
         balance = sum(sp.amount_cents for sp in entry.splits)
         if balance != 0:
             lines.append(f"  *** UNBALANCED by {fmt(balance)} ***")
@@ -494,7 +536,7 @@ class JournalReviewScreen(ModalScreen):
             if self._get_state(idx) != "OK":
                 continue
             splits = [
-                (sp.account_id, sp.amount_cents)
+                (sp.account_id, sp.amount_cents, sp.description)
                 for sp in entry.splits
             ]
             try:

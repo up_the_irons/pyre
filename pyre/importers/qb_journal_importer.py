@@ -1,40 +1,15 @@
 """QuickBooks journal entry CSV parser."""
 
 import csv
-import hashlib
 import re
-from dataclasses import dataclass, field
 from datetime import datetime
 
 from pyre.account_models import get_all_accounts
-
-
-@dataclass
-class JournalSplit:
-    """A single split within a journal entry."""
-    account_name: str       # QB path like "Sales:Hosting:VPS"
-    amount_cents: int       # positive = debit, negative = credit
-    account_id: str | None = None  # resolved Pyre account ID
-
-
-@dataclass
-class JournalEntry:
-    """A complete journal entry with multiple splits."""
-    date: str               # ISO YYYY-MM-DD
-    description: str        # derived from debit account(s)
-    splits: list[JournalSplit] = field(default_factory=list)
-    hash: str | None = None  # SHA-256 for dedup
-
-
-def _compute_journal_hash(entry):
-    """Compute a deterministic SHA-256 hash for a journal entry.
-
-    Hash is based on date + sorted account_name:amount_cents pairs.
-    Uses raw QB account names (pre-resolution) so the hash is file-content-based.
-    """
-    parts = sorted(f"{s.account_name}:{s.amount_cents}" for s in entry.splits)
-    raw = entry.date + "|" + "|".join(parts)
-    return hashlib.sha256(raw.encode()).hexdigest()
+from pyre.importers.journal import (
+    JournalEntry,
+    JournalSplit,
+    compute_journal_hash,
+)
 
 
 def _clean_name(name):
@@ -116,7 +91,7 @@ def parse_qb_journals(filepath):
             continue
         debit_names = [s.account_name for s in entry.splits if s.amount_cents > 0]
         entry.description = ", ".join(debit_names) if debit_names else no
-        entry.hash = _compute_journal_hash(entry)
+        entry.hash = compute_journal_hash(entry)
         result.append(entry)
 
     return result

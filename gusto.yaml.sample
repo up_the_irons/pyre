@@ -1,0 +1,13 @@
+# Gusto General Ledger account mapping.
+#
+# Maps Gusto "Account Type" values to your Pyre Chart of Accounts IDs.
+# Edit the values (right side) to match your own accounts.
+# Any unmapped account types will be flagged as errors during import.
+account_map:
+  RegularWages: salaries_and_wages
+  HolidayWages: salaries_and_wages
+  BenefitCompanyContribution: employee_benefits
+  EmployerTax: payroll_taxes
+  BenefitLiability: payroll_liabilities
+  DebitNetPay: checking
+  DebitTax: checking
