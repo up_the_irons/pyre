@@ -78,6 +78,10 @@ class TestCreateAccount:
                 parent_id="expenses",
             )
 
+    def test_create_rejects_colon_in_name(self, sample_accounts):
+        with pytest.raises(ValueError, match="cannot contain ':'"):
+            create_account(sample_accounts, "bad_name", "Foo:Bar", "asset")
+
 
 class TestUpdateAccount:
     def test_update_name(self, sample_accounts):
@@ -98,6 +102,10 @@ class TestUpdateAccount:
                 sample_accounts, "datacenter", "Data Center", "income",
                 parent_id="indirect_exp",
             )
+
+    def test_update_rejects_colon_in_name(self, sample_accounts):
+        with pytest.raises(ValueError, match="cannot contain ':'"):
+            update_account(sample_accounts, "checking", "Main:Checking", "asset")
 
 
 class TestDeleteAccount:

@@ -61,9 +61,18 @@ def _check_parent_type(con, parent_id, account_type):
         )
 
 
+def _check_name(name):
+    """Raise ValueError if the account name contains a colon."""
+    if ":" in name:
+        raise ValueError(
+            "Account name cannot contain ':' (used as path separator)"
+        )
+
+
 def create_account(con, account_id, name, account_type, account_number=None,
                    parent_id=None, description="", sidebar=False):
     """Insert a new account."""
+    _check_name(name)
     _check_parent_type(con, parent_id, account_type)
     con.execute(
         "INSERT INTO accounts (id, account_number, name, type, parent_id, description, sidebar) "
@@ -77,6 +86,7 @@ def create_account(con, account_id, name, account_type, account_number=None,
 def update_account(con, account_id, name, account_type, account_number=None,
                    parent_id=None, description="", sidebar=None):
     """Update an existing account."""
+    _check_name(name)
     _check_parent_type(con, parent_id, account_type)
     if sidebar is not None:
         con.execute(
