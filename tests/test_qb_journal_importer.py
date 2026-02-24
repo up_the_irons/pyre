@@ -12,8 +12,8 @@ from pyre.importers.journal import (
     JournalSplit,
     compute_journal_hash,
 )
+from pyre.importers.journal import build_account_path_map
 from pyre.importers.qb_journal_importer import (
-    build_qb_account_map,
     detect_qb_journal,
     parse_qb_journals,
     resolve_accounts,
@@ -275,22 +275,22 @@ def journal_db(db):
 
 class TestBuildQBAccountMap:
     def test_maps_top_level_accounts(self, journal_db):
-        mapping = build_qb_account_map(journal_db)
+        mapping = build_account_path_map(journal_db)
         assert mapping["PayPal"] == "paypal"
         assert mapping["Checking"] == "checking"
 
     def test_maps_nested_accounts(self, journal_db):
-        mapping = build_qb_account_map(journal_db)
+        mapping = build_account_path_map(journal_db)
         assert mapping["Sales:Hosting:VPS"] == "vps"
         assert mapping["Sales:Hosting:Backup"] == "backup"
 
     def test_maps_intermediate_accounts(self, journal_db):
-        mapping = build_qb_account_map(journal_db)
+        mapping = build_account_path_map(journal_db)
         assert mapping["Sales"] == "sales"
         assert mapping["Sales:Hosting"] == "hosting"
 
     def test_includes_all_accounts(self, journal_db):
-        mapping = build_qb_account_map(journal_db)
+        mapping = build_account_path_map(journal_db)
         assert len(mapping) == 9
 
 
@@ -302,7 +302,7 @@ class TestResolveAccounts:
                 JournalSplit("PayPal", 13500),
             ]),
         ]
-        mapping = build_qb_account_map(journal_db)
+        mapping = build_account_path_map(journal_db)
         unmatched = resolve_accounts(entries, mapping)
 
         assert unmatched == set()
@@ -316,7 +316,7 @@ class TestResolveAccounts:
                 JournalSplit("NonExistent:Account", 5000),
             ]),
         ]
-        mapping = build_qb_account_map(journal_db)
+        mapping = build_account_path_map(journal_db)
         unmatched = resolve_accounts(entries, mapping)
 
         assert "NonExistent:Account" in unmatched
@@ -336,7 +336,7 @@ class TestResolveAccounts:
                 JournalSplit("First National **1234", 5000),
             ]),
         ]
-        mapping = build_qb_account_map(db)
+        mapping = build_account_path_map(db)
         unmatched = resolve_accounts(entries, mapping)
 
         assert unmatched == set()
@@ -351,7 +351,7 @@ class TestParseAndResolve:
         path = _write_csv(SAMPLE_QB_JOURNAL)
         try:
             entries = parse_qb_journals(path)
-            mapping = build_qb_account_map(journal_db)
+            mapping = build_account_path_map(journal_db)
             unmatched = resolve_accounts(entries, mapping)
 
             assert len(entries) == 1
@@ -375,7 +375,7 @@ def _make_resolved_entries(journal_db):
     path = _write_csv(SAMPLE_QB_JOURNAL)
     try:
         entries = parse_qb_journals(path)
-        mapping = build_qb_account_map(journal_db)
+        mapping = build_account_path_map(journal_db)
         unmatched = resolve_accounts(entries, mapping)
         return entries, unmatched
     finally:
@@ -456,7 +456,7 @@ class TestJournalReviewScreen:
         path = _write_csv(csv_content)
         try:
             entries = parse_qb_journals(path)
-            mapping = build_qb_account_map(journal_app.con)
+            mapping = build_account_path_map(journal_app.con)
             unmatched = resolve_accounts(entries, mapping)
         finally:
             os.unlink(path)
@@ -675,7 +675,7 @@ class TestJournalReviewScreen:
         path = _write_csv(csv_content)
         try:
             entries = parse_qb_journals(path)
-            mapping = build_qb_account_map(journal_app.con)
+            mapping = build_account_path_map(journal_app.con)
             unmatched = resolve_accounts(entries, mapping)
         finally:
             os.unlink(path)

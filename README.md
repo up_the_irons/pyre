@@ -154,24 +154,27 @@ cp gusto.yaml.sample gusto.yaml
 
 ```yaml
 account_map:
-  RegularWages: salaries_and_wages
-  HolidayWages: salaries_and_wages
-  BenefitCompanyContribution: employee_benefits
-  BenefitLiability: payroll_liabilities
-  DebitNetPay: checking          # your payroll bank account
-  DebitTax: checking             # same payroll bank account
+  RegularWages: "Salaries & Wages"
+  HolidayWages: "Salaries & Wages"
+  BenefitCompanyContribution: "Employee Benefits"
+  BenefitLiability: "Payroll Liabilities"
+  DebitNetPay: "Checking Account"
+  DebitTax: "Checking Account"
 
   # String value: all splits of this type go to one account
-  # EmployerTax: payroll_taxes
+  # EmployerTax: "Payroll Taxes"
 
   # Dict value: route by description substring for finer control
   EmployerTax:
-    Social Security: payroll_taxes_fica
-    Medicare: payroll_taxes_fica
-    FUTA: payroll_taxes_futa
-    SUI: payroll_taxes_sui
-    ETT: payroll_taxes_ett
+    Social Security: "Payroll Taxes:FICA"
+    Medicare: "Payroll Taxes:FICA"
+    FUTA: "Payroll Taxes:FUTA"
+    SUI: "Payroll Taxes:SUI"
+    ETT: "Payroll Taxes:ETT"
 ```
+
+Values are colon-delimited account paths matching your Chart of Accounts
+(e.g. `Expenses:Payroll:Wages`).
 
 2. In Gusto, go to **Reports > General ledger report**, select a pay period,
    and download the XLSX file.

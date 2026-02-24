@@ -263,8 +263,9 @@ class ImportFileScreen(ModalScreen):
         )
 
     def _import_qb_journal(self, path):
+        from pyre.importers.journal import build_account_path_map
         from pyre.importers.qb_journal_importer import (
-            build_qb_account_map, parse_qb_journals, resolve_accounts,
+            parse_qb_journals, resolve_accounts,
         )
 
         entries = parse_qb_journals(path)
@@ -272,7 +273,7 @@ class ImportFileScreen(ModalScreen):
             self.query_one("#if-error", Label).update("No journal entries found in CSV.")
             return
 
-        account_map = build_qb_account_map(self.con)
+        account_map = build_account_path_map(self.con)
         unmatched = resolve_accounts(entries, account_map)
 
         def on_review(result):
@@ -284,10 +285,12 @@ class ImportFileScreen(ModalScreen):
         )
 
     def _import_xlsx(self, path):
+        from pyre.importers.journal import build_account_path_map
         from pyre.importers.gusto_importer import (
             detect_gusto_gl,
             load_gusto_config,
             parse_gusto_gl,
+            resolve_config_paths,
             resolve_gusto_accounts,
         )
 
@@ -308,7 +311,18 @@ class ImportFileScreen(ModalScreen):
             self.query_one("#if-error", Label).update("No payroll entries found in file.")
             return
 
-        unmatched = resolve_gusto_accounts(entries, config["account_map"])
+        # Resolve account paths from gusto.yaml to Pyre account IDs
+        path_map = build_account_path_map(self.con)
+        resolved_map, bad_paths = resolve_config_paths(
+            config["account_map"], path_map,
+        )
+        if bad_paths:
+            self.query_one("#if-error", Label).update(
+                f"Unknown account paths in gusto.yaml: {', '.join(sorted(bad_paths))}"
+            )
+            return
+
+        unmatched = resolve_gusto_accounts(entries, resolved_map)
 
         def on_review(result):
             self.dismiss(result)

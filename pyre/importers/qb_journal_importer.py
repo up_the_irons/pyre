@@ -4,7 +4,6 @@ import csv
 import re
 from datetime import datetime
 
-from pyre.account_models import get_all_accounts
 from pyre.importers.journal import (
     JournalEntry,
     JournalSplit,
@@ -97,30 +96,6 @@ def parse_qb_journals(filepath):
     return result
 
 
-def build_qb_account_map(con):
-    """Build mapping from QB colon-delimited account paths to Pyre account IDs.
-
-    Returns dict mapping QB-style paths (e.g. "Sales:Hosting:VPS") to
-    Pyre account IDs.
-    """
-    accounts = get_all_accounts(con)
-    by_id = {a["id"]: a for a in accounts}
-
-    path_to_id = {}
-    for a in accounts:
-        parts = []
-        current = a["id"]
-        while current:
-            acct = by_id.get(current)
-            if not acct:
-                break
-            parts.append(acct["name"])
-            current = acct["parent_id"]
-        parts.reverse()
-        path = ":".join(parts)
-        path_to_id[path] = a["id"]
-
-    return path_to_id
 
 
 def resolve_accounts(entries, account_map):

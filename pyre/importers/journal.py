@@ -3,6 +3,8 @@
 import hashlib
 from dataclasses import dataclass, field
 
+from pyre.account_models import get_all_accounts
+
 
 @dataclass
 class JournalSplit:
@@ -31,3 +33,29 @@ def compute_journal_hash(entry):
     parts = sorted(f"{s.account_name}:{s.amount_cents}" for s in entry.splits)
     raw = entry.date + "|" + "|".join(parts)
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def build_account_path_map(con):
+    """Build mapping from colon-delimited account paths to Pyre account IDs.
+
+    Returns dict mapping paths (e.g. "Expenses:Payroll:Wages")
+    to Pyre account IDs.
+    """
+    accounts = get_all_accounts(con)
+    by_id = {a["id"]: a for a in accounts}
+
+    path_to_id = {}
+    for a in accounts:
+        parts = []
+        current = a["id"]
+        while current:
+            acct = by_id.get(current)
+            if not acct:
+                break
+            parts.append(acct["name"])
+            current = acct["parent_id"]
+        parts.reverse()
+        path = ":".join(parts)
+        path_to_id[path] = a["id"]
+
+    return path_to_id

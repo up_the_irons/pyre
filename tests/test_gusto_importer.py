@@ -12,6 +12,7 @@ from pyre.importers.gusto_importer import (
     detect_gusto_gl,
     load_gusto_config,
     parse_gusto_gl,
+    resolve_config_paths,
     resolve_gusto_accounts,
 )
 from pyre.importers.models import is_already_imported, log_import
@@ -404,6 +405,74 @@ class TestResolveGustoAccounts:
         }
         unmatched = resolve_gusto_accounts(entries, account_map)
         assert unmatched == set()
+
+
+# -- Config Path Resolution ---------------------------------------------------
+
+class TestResolveConfigPaths:
+    def test_resolves_string_paths(self):
+        account_map = {
+            "RegularWages": "Expenses:Salaries",
+            "DebitNetPay": "Assets:Checking",
+        }
+        path_map = {
+            "Expenses:Salaries": "sal_001",
+            "Assets:Checking": "chk_001",
+        }
+        resolved, bad = resolve_config_paths(account_map, path_map)
+        assert resolved == {"RegularWages": "sal_001", "DebitNetPay": "chk_001"}
+        assert bad == set()
+
+    def test_resolves_dict_paths(self):
+        account_map = {
+            "EmployerTax": {
+                "Social Security": "Expenses:FICA",
+                "FUTA": "Expenses:FUTA",
+            },
+        }
+        path_map = {
+            "Expenses:FICA": "fica_001",
+            "Expenses:FUTA": "futa_001",
+        }
+        resolved, bad = resolve_config_paths(account_map, path_map)
+        assert resolved["EmployerTax"] == {
+            "Social Security": "fica_001",
+            "FUTA": "futa_001",
+        }
+        assert bad == set()
+
+    def test_reports_bad_string_paths(self):
+        account_map = {"RegularWages": "Expenses:Nonexistent"}
+        path_map = {"Expenses:Salaries": "sal_001"}
+        resolved, bad = resolve_config_paths(account_map, path_map)
+        assert "Expenses:Nonexistent" in bad
+        assert "RegularWages" not in resolved
+
+    def test_reports_bad_dict_paths(self):
+        account_map = {
+            "EmployerTax": {
+                "Social Security": "Expenses:FICA",
+                "FUTA": "Expenses:Missing",
+            },
+        }
+        path_map = {"Expenses:FICA": "fica_001"}
+        resolved, bad = resolve_config_paths(account_map, path_map)
+        assert "Expenses:Missing" in bad
+        assert resolved["EmployerTax"] == {"Social Security": "fica_001"}
+
+    def test_mixed_string_and_dict(self):
+        account_map = {
+            "RegularWages": "Expenses:Salaries",
+            "EmployerTax": {"Medicare": "Expenses:FICA"},
+        }
+        path_map = {
+            "Expenses:Salaries": "sal_001",
+            "Expenses:FICA": "fica_001",
+        }
+        resolved, bad = resolve_config_paths(account_map, path_map)
+        assert resolved["RegularWages"] == "sal_001"
+        assert resolved["EmployerTax"] == {"Medicare": "fica_001"}
+        assert bad == set()
 
 
 # -- Hash / Dedup -------------------------------------------------------------

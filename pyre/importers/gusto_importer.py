@@ -129,6 +129,40 @@ def parse_gusto_gl(filepath):
     return [entry]
 
 
+def resolve_config_paths(account_map, path_map):
+    """Convert account path values in the config to Pyre account IDs.
+
+    account_map: raw dict from gusto.yaml (values are account paths or
+                 dicts of description -> account path).
+    path_map: dict from build_account_path_map() (path -> account ID).
+
+    Returns (resolved_map, bad_paths) where resolved_map has the same
+    structure but with account IDs instead of paths, and bad_paths is a
+    set of paths that could not be resolved.
+    """
+    resolved = {}
+    bad_paths = set()
+
+    for gusto_type, mapping in account_map.items():
+        if isinstance(mapping, str):
+            acct_id = path_map.get(mapping)
+            if acct_id:
+                resolved[gusto_type] = acct_id
+            else:
+                bad_paths.add(mapping)
+        elif isinstance(mapping, dict):
+            sub = {}
+            for desc_pattern, path in mapping.items():
+                acct_id = path_map.get(path)
+                if acct_id:
+                    sub[desc_pattern] = acct_id
+                else:
+                    bad_paths.add(path)
+            resolved[gusto_type] = sub
+
+    return resolved, bad_paths
+
+
 def _resolve_split(split, account_map):
     """Resolve a single split using the account map.
 
