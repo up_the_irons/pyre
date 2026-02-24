@@ -42,6 +42,7 @@ pyre.log
 # Imports
 *.qfx
 *.csv
+*.xlsx
 
 # Config
 quick_functions.yaml
