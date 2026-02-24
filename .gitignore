@@ -47,6 +47,7 @@ pyre.log
 quick_functions.yaml
 preferences.yaml
 company.yaml
+gusto.yaml
 
 # Claude Code
 .claude/

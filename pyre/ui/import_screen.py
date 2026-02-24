@@ -114,7 +114,7 @@ class ImportFileScreen(ModalScreen):
             yield Label("Import Bank Transactions", id="if-title")
             yield Label("Enter path to OFX/QFX, CSV, or XLSX file:", classes="if-field-label")
             yield Input(placeholder="/path/to/download.ofx", id="if-path", classes="if-input")
-            yield Label("", id="if-error")
+            yield Label("", id="if-error", shrink=True)
             with Horizontal(id="if-buttons"):
                 yield Button("Import", variant="primary", id="if-import")
                 yield Button("Cancel", id="if-cancel-btn")
@@ -451,18 +451,19 @@ class JournalReviewScreen(ModalScreen):
         skipped = sum(1 for i in range(total) if self._get_state(i) == "SKP")
         errors = sum(1 for i in range(total) if self._get_state(i) == "ERR")
         new = sum(1 for i in range(total) if self._get_state(i) == "NEW")
-        parts = [f"{total} entries:"]
+        counts = []
         if new:
-            parts.append(f"{new} new")
+            counts.append(f"{new} new")
         if accepted:
-            parts.append(f"{accepted} accepted")
+            counts.append(f"{accepted} accepted")
         if skipped:
-            parts.append(f"{skipped} skipped")
+            counts.append(f"{skipped} skipped")
         if errors:
-            parts.append(f"{errors} errors (unmatched accounts)")
+            counts.append(f"{errors} errors (unmatched accounts)")
+        status = f"{total} entries: {', '.join(counts)}" if counts else f"{total} entries"
         if self.unmatched:
-            parts.append(f"Unmatched: {', '.join(sorted(self.unmatched))}")
-        self.query_one("#jr-status", Label).update(", ".join(parts))
+            status += f"  |  Unmatched: {', '.join(sorted(self.unmatched))}"
+        self.query_one("#jr-status", Label).update(status)
 
     def _current_row_idx(self):
         table = self.query_one("#jr-table", DataTable)
@@ -526,18 +527,33 @@ class JournalReviewScreen(ModalScreen):
         self._refresh_table()
         self._update_status()
 
+    def _format_split_line(self, sp):
+        """Format a single split for peek display."""
+        name = sp.account_name
+        if sp.account_id is None:
+            name = f"{name} [UNMATCHED]"
+        desc = f" ({sp.description})" if sp.description else ""
+        return f"  {name}{desc}: {fmt(abs(sp.amount_cents))}"
+
     def action_peek(self):
         idx = self._current_row_idx()
         if idx is None:
             return
         entry = self.entries[idx]
-        lines = [f"Date: {format_date(entry.date)}  {entry.description}"]
-        for sp in entry.splits:
-            name = sp.account_name
-            if sp.account_id is None:
-                name = f"{name} [UNMATCHED]"
-            desc = f" ({sp.description})" if sp.description else ""
-            lines.append(f"  {name}{desc}: {fmt(sp.amount_cents)}")
+        debits = [sp for sp in entry.splits if sp.amount_cents > 0]
+        credits = [sp for sp in entry.splits if sp.amount_cents < 0]
+        lines = [f"{format_date(entry.date)}  {entry.description}", ""]
+        if debits:
+            debit_total = sum(sp.amount_cents for sp in debits)
+            lines.append(f"Debit  {fmt(debit_total)}")
+            for sp in debits:
+                lines.append(self._format_split_line(sp))
+        if credits:
+            lines.append("")
+            credit_total = sum(sp.amount_cents for sp in credits)
+            lines.append(f"Credit  {fmt(abs(credit_total))}")
+            for sp in credits:
+                lines.append(self._format_split_line(sp))
         balance = sum(sp.amount_cents for sp in entry.splits)
         if balance != 0:
             lines.append(f"  *** UNBALANCED by {fmt(balance)} ***")

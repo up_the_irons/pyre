@@ -10,10 +10,21 @@ import yaml
 from pyre.importers.journal import JournalEntry, JournalSplit, compute_journal_hash
 
 
+_HEADER_ROW = ["Account Type", "Account Description", "Debit", "Credit"]
+
+
+def _find_header_row(rows):
+    """Return the index of the header row, or -1 if not found."""
+    for i, row in enumerate(rows):
+        if list(row) == _HEADER_ROW:
+            return i
+    return -1
+
+
 def detect_gusto_gl(filepath):
     """Return True if the XLSX looks like a Gusto General Ledger export.
 
-    Checks for a 'Basic' sheet whose 4th row contains the expected headers:
+    Checks for a 'Basic' sheet containing a header row with:
     Account Type, Account Description, Debit, Credit.
     """
     try:
@@ -25,12 +36,8 @@ def detect_gusto_gl(filepath):
         if "Basic" not in wb.sheetnames:
             return False
         ws = wb["Basic"]
-        row4_rows = list(ws.iter_rows(min_row=4, max_row=4))
-        if not row4_rows:
-            return False
-        row4 = [cell.value for cell in row4_rows[0]]
-        expected = ["Account Type", "Account Description", "Debit", "Credit"]
-        return row4 == expected
+        rows = list(ws.iter_rows(values_only=True))
+        return _find_header_row(rows) >= 0
     finally:
         wb.close()
 
@@ -73,13 +80,23 @@ def parse_gusto_gl(filepath):
     finally:
         wb.close()
 
-    if len(rows) < 5:
+    header_idx = _find_header_row(rows)
+    if header_idx < 0:
         return []
 
-    # Row 2 (index 1): period description, e.g. "Ledger for Regular Payroll Jan 1 - Jan 15"
-    # Row 3 (index 2): check date, e.g. "Check date: 2026-01-15"
-    description = rows[1][0] or ""
-    check_date_raw = rows[2][0] or ""
+    # Scan rows above the header for the description and check date.
+    # These are the last two non-blank rows before the header.
+    description = ""
+    check_date_raw = ""
+    for row in rows[:header_idx]:
+        val = row[0]
+        if val is None:
+            continue
+        val = str(val)
+        if re.search(r"Check date:", val):
+            check_date_raw = val
+        elif re.search(r"Ledger for", val):
+            description = val
 
     # Extract the ISO date from "Check date: YYYY-MM-DD"
     m = re.search(r"Check date:\s*(\d{4}-\d{2}-\d{2})", check_date_raw)
@@ -93,9 +110,9 @@ def parse_gusto_gl(filepath):
     except ValueError:
         return []
 
-    # Row 4 (index 3) is the header row; data starts at row 5 (index 4)
+    # Data starts after the header row
     splits = []
-    for row in rows[4:]:
+    for row in rows[header_idx + 1:]:
         account_type = row[0]
         if account_type is None:
             continue  # skip Totals row and blanks

@@ -735,6 +735,10 @@ JOURNAL_REVIEW_CSS = """
 JournalReviewScreen {
     align: center middle;
 }
+JournalReviewScreen Toast {
+    width: 90;
+    max-width: 75%;
+}
 #jr-container {
     width: 95%;
     height: auto;
