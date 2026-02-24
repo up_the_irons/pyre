@@ -27,7 +27,7 @@ run:
 	. venv/bin/activate && python -m pyre
 
 import:
-	. venv/bin/activate && python -m pyre $(FILE)
+	. venv/bin/activate && python -m pyre '$(FILE)'
 
 rules:
 	. venv/bin/activate && PYTHONPATH=. python scripts/list_rules.py

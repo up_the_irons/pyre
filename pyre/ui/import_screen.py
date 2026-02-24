@@ -1,5 +1,6 @@
 """Import screens for bank transaction import."""
 
+import glob
 import logging
 import re
 from pathlib import Path
@@ -149,20 +150,43 @@ class ImportFileScreen(ModalScreen):
             error_label.update("Please enter a file path.")
             return
 
-        path = Path(filepath).expanduser()
-        if not path.exists():
-            error_label.update(f"File not found: {path}")
+        expanded = str(Path(filepath).expanduser())
+
+        # Glob expansion if wildcards present
+        if any(c in expanded for c in "*?["):
+            matches = sorted(glob.glob(expanded))
+            if not matches:
+                error_label.update(f"No files matched: {filepath}")
+                return
+            paths = [Path(m) for m in matches]
+        else:
+            path = Path(expanded)
+            if not path.exists():
+                error_label.update(f"File not found: {path}")
+                return
+            paths = [path]
+
+        # Check all files share the same type
+        suffixes = {p.suffix.lower() for p in paths}
+        if len(suffixes) > 1:
+            error_label.update(f"Mixed file types in glob: {', '.join(sorted(suffixes))}")
             return
 
-        suffix = path.suffix.lower()
+        suffix = suffixes.pop()
 
         try:
             if suffix in (".ofx", ".qfx"):
-                self._import_ofx(path)
+                if len(paths) > 1:
+                    error_label.update("Glob not supported for OFX/QFX files (import one at a time).")
+                    return
+                self._import_ofx(paths[0])
             elif suffix == ".csv":
-                self._import_csv(path)
+                if len(paths) > 1:
+                    error_label.update("Glob not supported for CSV files (import one at a time).")
+                    return
+                self._import_csv(paths[0])
             elif suffix == ".xlsx":
-                self._import_xlsx(path)
+                self._import_xlsx_batch(paths)
             else:
                 error_label.update(f"Unsupported file type: {suffix}")
         except Exception as e:
@@ -284,7 +308,7 @@ class ImportFileScreen(ModalScreen):
             callback=on_review,
         )
 
-    def _import_xlsx(self, path):
+    def _import_xlsx_batch(self, paths):
         from pyre.importers.journal import build_account_path_map
         from pyre.importers.gusto_importer import (
             detect_gusto_gl,
@@ -294,21 +318,20 @@ class ImportFileScreen(ModalScreen):
             resolve_gusto_accounts,
         )
 
-        if not detect_gusto_gl(path):
-            self.query_one("#if-error", Label).update(
-                "Unrecognized XLSX format (expected Gusto General Ledger)."
-            )
-            return
+        error_label = self.query_one("#if-error", Label)
+
+        # Validate all files are Gusto GL
+        for path in paths:
+            if not detect_gusto_gl(path):
+                error_label.update(
+                    f"Unrecognized XLSX format: {path.name}"
+                )
+                return
 
         try:
             config = load_gusto_config()
         except FileNotFoundError as e:
-            self.query_one("#if-error", Label).update(str(e))
-            return
-
-        entries = parse_gusto_gl(path)
-        if not entries:
-            self.query_one("#if-error", Label).update("No payroll entries found in file.")
+            error_label.update(str(e))
             return
 
         # Resolve account paths from gusto.yaml to Pyre account IDs
@@ -317,20 +340,39 @@ class ImportFileScreen(ModalScreen):
             config["account_map"], path_map,
         )
         if bad_paths:
-            self.query_one("#if-error", Label).update(
+            error_label.update(
                 f"Unknown account paths in gusto.yaml: {', '.join(sorted(bad_paths))}"
             )
             return
 
-        unmatched = resolve_gusto_accounts(entries, resolved_map)
+        # Parse all files and collect entries
+        all_entries = []
+        source_files = []
+        for path in paths:
+            entries = parse_gusto_gl(path)
+            if entries:
+                all_entries.extend(entries)
+                source_files.append(str(path))
+
+        if not all_entries:
+            error_label.update("No payroll entries found in file(s).")
+            return
+
+        unmatched = resolve_gusto_accounts(all_entries, resolved_map)
+        source = ", ".join(source_files)
+
+        if len(paths) == 1:
+            title = f"Import Gusto Payroll: {paths[0].name}"
+        else:
+            title = f"Import Gusto Payroll: {len(all_entries)} entries from {len(paths)} files"
 
         def on_review(result):
             self.dismiss(result)
 
         self.app.push_screen(
             JournalReviewScreen(
-                self.con, str(path), entries, unmatched,
-                title=f"Import Gusto Payroll: {path.name}",
+                self.con, source, all_entries, unmatched,
+                title=title,
             ),
             callback=on_review,
         )
