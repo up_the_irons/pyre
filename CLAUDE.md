@@ -27,3 +27,4 @@ Always activate the virtualenv before running any Python/pip commands:
 ## Git Rules
 
 - **NEVER use `git commit --amend`**. Always create a new commit. Amending can overwrite another agent's work.
+- **Always GPG-sign commits** with `-S` (e.g. `git commit -S -m "message"`).
