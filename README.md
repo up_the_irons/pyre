@@ -89,7 +89,7 @@ cp quick_functions.yaml.sample quick_functions.yaml
 - `.env` -- set `PYRE_DB_PATH` to control where the database lives (default: `./pyre.db`)
 - `company.yaml` -- company/entity name shown in reports and the title bar
 - `quick_functions.yaml` -- keyboard-triggered transaction templates (see below)
-- `gusto.yaml` -- Gusto payroll account mapping, copied from `gusto.yaml.sample` (see below)
+- `gusto.yaml` -- Gusto payroll account mapping, located next to the database (see below)
 - `preferences.yaml` -- UI theme and report output paths (see below)
 
 ## Report Output Paths
@@ -145,11 +145,11 @@ net pay, etc.).
 
 **Setup:**
 
-1. Copy the sample config and edit the account mappings to match your Chart of
-   Accounts:
+1. Copy the sample config next to your database file and edit the account
+   mappings to match your Chart of Accounts:
 
 ```
-cp gusto.yaml.sample gusto.yaml
+cp gusto.yaml.sample /path/to/your/gusto.yaml
 ```
 
 ```yaml

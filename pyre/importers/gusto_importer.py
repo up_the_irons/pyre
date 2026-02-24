@@ -43,22 +43,22 @@ def detect_gusto_gl(filepath):
 
 
 def load_gusto_config(config_path=None):
-    """Load the Gusto account mapping from gusto.yaml.
+    """Load the Gusto account mapping from gusto.yaml next to the database.
 
-    Searches for gusto.yaml in the current directory by default.
     Returns the parsed YAML dict (with an 'account_map' key).
     Raises FileNotFoundError if the file is missing.
     """
     if config_path is None:
-        config_path = Path("gusto.yaml")
+        from pyre.db import DB_PATH
+        config_path = DB_PATH.with_name("gusto.yaml")
     else:
         config_path = Path(config_path)
 
     if not config_path.exists():
         raise FileNotFoundError(
             f"Gusto config not found: {config_path}\n"
-            "Run: cp gusto.yaml.sample gusto.yaml  "
-            "then edit the account mappings."
+            "Copy gusto.yaml.sample next to your database "
+            "and edit the account mappings."
         )
 
     with open(config_path, encoding="utf-8") as f:
