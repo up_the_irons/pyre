@@ -608,6 +608,9 @@ def _pdf_html(report_title, date_line, table_body, color=True):
         .indent-1 {{ padding-left: 20px; }}
         .indent-2 {{ padding-left: 40px; }}
         .indent-3 {{ padding-left: 60px; }}
+        .indent-4 {{ padding-left: 80px; }}
+        .indent-5 {{ padding-left: 100px; }}
+        .indent-6 {{ padding-left: 120px; }}
         .subtotal {{
             font-weight: bold;
             border-top: 1px solid #000;
