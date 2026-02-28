@@ -223,7 +223,7 @@ class QuickEntryScreen(ModalScreen):
                             classes="qe-pick-account",
                         )
                     else:
-                        yield Label(f"From: {name}", id="qe-from")
+                        yield Label(f"From: {name}", id=f"qe-from-{idx}", classes="qe-from")
 
             yield Label("", id="qe-status")
             yield Label("", id="qe-error")
