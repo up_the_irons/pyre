@@ -733,6 +733,10 @@ class PyreApp(App):
                 self.refresh_balances()
                 self.refresh_ledger()
                 self.notify("Transaction deleted", severity="warning")
+            elif result == "copied":
+                self.refresh_balances()
+                self.refresh_ledger()
+                self.notify("Transaction copied", severity="information")
 
         self.push_screen(EditTransactionScreen(tx_id, self.con), callback=on_dismiss)
 

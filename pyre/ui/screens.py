@@ -625,6 +625,9 @@ class TransactionFormBase(ModalScreen):
             self._save()
         elif btn_id == "at-cancel-btn":
             self.dismiss(None)
+        elif btn_id == "at-copy":
+            if hasattr(self, '_copy'):
+                self._copy()
         elif btn_id == "at-delete":
             if hasattr(self, '_delete'):
                 self._delete()
@@ -837,6 +840,8 @@ class EditTransactionScreen(TransactionFormBase):
                 with Horizontal(id="at-buttons"):
                     yield Button("Save", variant="primary", id="at-save")
                     yield Button("Cancel", id="at-cancel-btn")
+                    yield Label("", id="at-spacer")
+                    yield Button("Copy", id="at-copy")
             return
 
         if self._has_reconciled:
@@ -889,6 +894,8 @@ class EditTransactionScreen(TransactionFormBase):
                 with Horizontal(id="at-buttons"):
                     yield Button("Save", variant="primary", id="at-save")
                     yield Button("Cancel", id="at-cancel-btn")
+                    yield Label("", id="at-spacer")
+                    yield Button("Copy", id="at-copy")
                 yield Label("\\[Ctrl+S] Save  \\[Ctrl+D] Descriptions", id="at-hint")
             return
 
@@ -957,6 +964,7 @@ class EditTransactionScreen(TransactionFormBase):
                 yield Button("Save", variant="primary", id="at-save")
                 yield Button("Cancel", id="at-cancel-btn")
                 yield Label("", id="at-spacer")
+                yield Button("Copy", id="at-copy")
                 yield Button("Delete", variant="error", id="at-delete")
             yield Label("\\[Ctrl+S] Save  \\[Ctrl+D] Descriptions", id="at-hint")
 
@@ -1101,6 +1109,20 @@ class EditTransactionScreen(TransactionFormBase):
     def _delete(self):
         delete_transaction(self.con, self.tx_id)
         self.dismiss("deleted")
+
+    def _copy(self):
+        """Copy this transaction with today's date."""
+        try:
+            _, _, tx_desc, _memo, tx_vendor_id = self.tx
+            splits = [
+                (acct_id, amount, split_desc)
+                for _sid, acct_id, _acct_name, amount, split_desc in self.orig_splits
+            ]
+            post_transaction(self.con, str(date.today()), tx_desc, splits,
+                             vendor_id=tx_vendor_id)
+            self.dismiss("copied")
+        except Exception as e:
+            self.query_one("#at-error", Label).update(f"Error: {e}")
 
 
 class ReportDateScreen(ModalScreen):
