@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from pyre.scheduled_models import (
@@ -353,8 +355,9 @@ from pyre.ui.app import PyreApp
 
 async def test_pending_screen_appears_on_launch(ui_db):
     """Pending review screen should appear when scheduled txns are due."""
+    today = date.today().isoformat()
     create_scheduled_transaction(
-        ui_db, "Due Bill", "monthly", "2026-02-01",
+        ui_db, "Due Bill", "monthly", today,
         [("office", 5000), ("cap1", -5000)],
     )
     app = PyreApp(con=ui_db)
@@ -368,8 +371,9 @@ async def test_pending_screen_appears_on_launch(ui_db):
 
 async def test_pending_post_all(ui_db):
     """Post All should create transactions and dismiss."""
+    today = date.today().isoformat()
     create_scheduled_transaction(
-        ui_db, "Due Bill", "monthly", "2026-02-01",
+        ui_db, "Due Bill", "monthly", today,
         [("office", 5000), ("cap1", -5000)],
     )
     app = PyreApp(con=ui_db)
@@ -388,12 +392,13 @@ async def test_pending_post_all(ui_db):
 
 async def test_pending_skip_excludes(ui_db):
     """Pressing space should toggle skip, and Post All should exclude skipped."""
+    today = date.today().isoformat()
     create_scheduled_transaction(
-        ui_db, "Skip Me", "monthly", "2026-02-01",
+        ui_db, "Skip Me", "monthly", today,
         [("office", 5000), ("cap1", -5000)],
     )
     create_scheduled_transaction(
-        ui_db, "Post Me", "monthly", "2026-02-15",
+        ui_db, "Post Me", "monthly", today,
         [("hosting_exp", 3000), ("checking", -3000)],
     )
     app = PyreApp(con=ui_db)
