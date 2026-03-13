@@ -67,7 +67,7 @@ QuickEntryScreen {
 .qe-amount-field {
     margin-bottom: 0;
 }
-#qe-from {
+.qe-from {
     margin-top: 1;
     color: $text-muted;
 }

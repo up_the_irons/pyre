@@ -67,53 +67,44 @@ class TestSplitInfoIncludesAccountId:
             name, amount, reconcile, account_id = fields
             assert account_id in ("comp_accum", "veh_accum", "checking")
 
-    def test_parse_splits_returns_account_id(self, dup_name_app):
+    async def test_parse_splits_returns_account_id(self, dup_name_app):
         """_parse_splits should return 4-tuples with account_id."""
-        async def _test():
-            async with dup_name_app.run_test():
-                dup_name_app.refresh_ledger()
-                for tx_id, splits in dup_name_app._row_splits.items():
-                    for split in splits:
-                        assert len(split) == 4, f"Expected 4-tuple, got {len(split)}: {split}"
-                        name, amount, reconcile, account_id = split
-                        assert account_id != "", "account_id should not be empty"
-        import asyncio
-        asyncio.get_event_loop().run_until_complete(_test())
+        async with dup_name_app.run_test():
+            dup_name_app.refresh_ledger()
+            for tx_id, splits in dup_name_app._row_splits.items():
+                for split in splits:
+                    assert len(split) == 4, f"Expected 4-tuple, got {len(split)}: {split}"
+                    name, amount, reconcile, account_id = split
+                    assert account_id != "", "account_id should not be empty"
 
 
 class TestAccountFullNamesDisambiguation:
     """_account_full_names must distinguish accounts with identical names."""
 
-    def test_full_names_keyed_by_id(self, dup_name_app):
+    async def test_full_names_keyed_by_id(self, dup_name_app):
         """Both 'Accumulated Depreciation' accounts should have distinct full names."""
-        async def _test():
-            async with dup_name_app.run_test():
-                dup_name_app.refresh_ledger()
-                fn = dup_name_app._account_full_names
-                comp_path = fn.get("comp_accum")
-                veh_path = fn.get("veh_accum")
-                assert comp_path is not None, "comp_accum missing from _account_full_names"
-                assert veh_path is not None, "veh_accum missing from _account_full_names"
-                assert comp_path != veh_path, (
-                    f"Paths should differ: comp={comp_path}, veh={veh_path}"
-                )
-                assert "Computer Equipment" in comp_path
-                assert "Vehicles" in veh_path
-        import asyncio
-        asyncio.get_event_loop().run_until_complete(_test())
+        async with dup_name_app.run_test():
+            dup_name_app.refresh_ledger()
+            fn = dup_name_app._account_full_names
+            comp_path = fn.get("comp_accum")
+            veh_path = fn.get("veh_accum")
+            assert comp_path is not None, "comp_accum missing from _account_full_names"
+            assert veh_path is not None, "veh_accum missing from _account_full_names"
+            assert comp_path != veh_path, (
+                f"Paths should differ: comp={comp_path}, veh={veh_path}"
+            )
+            assert "Computer Equipment" in comp_path
+            assert "Vehicles" in veh_path
 
-    def test_account_types_keyed_by_id(self, dup_name_app):
+    async def test_account_types_keyed_by_id(self, dup_name_app):
         """_account_types should be keyed by account_id, not name."""
-        async def _test():
-            async with dup_name_app.run_test():
-                dup_name_app.refresh_ledger()
-                types = dup_name_app._account_types
-                assert "comp_accum" in types
-                assert "veh_accum" in types
-                assert "comp_cost" in types
-                assert "veh_cost" in types
-        import asyncio
-        asyncio.get_event_loop().run_until_complete(_test())
+        async with dup_name_app.run_test():
+            dup_name_app.refresh_ledger()
+            types = dup_name_app._account_types
+            assert "comp_accum" in types
+            assert "veh_accum" in types
+            assert "comp_cost" in types
+            assert "veh_cost" in types
 
 
 class TestExpandedSplitDisplay:
